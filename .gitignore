@@ -1,0 +1,4 @@
+.env
+
+# ignore all python cache files
+global-exclude __pycache__
