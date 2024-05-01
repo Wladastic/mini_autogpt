@@ -43,6 +43,20 @@ To get started, you'll need:
     cd mini-autogpt
     pip install -r requirements.txt
 4. Update the .env file with your Telegram bot token.
+5. Run any of those local LLM servers with API enabled:
+    - LMStudio
+    - oobabooga/textgeneration-webui
+    - ollama
+6. Update .env file with the API URL of your local LLM.
+
+## LLM Models known to work with Mini-AutoGPT
+- Meta/LLama-3-8B-Instruct (preferable a variation with more context length)
+- NousResearch/Hermes-2-Pro-Mistral-7B
+- argilla/CapybaraHermes-2.5-Mistral-7B
+- Intel/neural-chat-7b-v3-1
+- Nexusflow/Starling-LM-7B-beta
+- mistralai/Mixtral-8x7B-Instruct-v0.1
+
 
 ## Usage 🔧
 
