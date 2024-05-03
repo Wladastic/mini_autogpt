@@ -2,5 +2,10 @@
 
 # ignore all python cache files
 global-exclude __pycache__
-
+global-exclude *.pyc
 *.pyc
+
+# ignore memory json files
+memories.json
+response_history.json
+thought_history.json
