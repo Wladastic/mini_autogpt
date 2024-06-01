@@ -19,6 +19,7 @@ def one_shot_request(prompt, system_context):
 
 def llm_request(history):
     load_dotenv()
+    model = os.getenv("MODEL")
     temperature = os.getenv("TEMPERATURE")
     max_tokens = os.getenv("MAX_TOKENS")
     truncation_length = os.getenv("TRUNCATION_LENGTH")
@@ -26,6 +27,7 @@ def llm_request(history):
 
     data = {
         "mode": "instruct",
+        "model": model,
         "messages": history,
         "temperature": temperature,
         "user_bio": "",
