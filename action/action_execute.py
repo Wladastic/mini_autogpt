@@ -19,6 +19,19 @@ DUCKDUCKGO_MAX_ATTEMPTS = 3
 
 fail_counter = 0
 
+def extract_command(assistant_message):
+    json_message = assistant_message
+    if not json_message.startswith('{'):
+        json_message = json_message.split("{")[1:]
+        json_message = "{"+"{".join(json_message)
+    if not json_message.endswith('}'):
+        json_message = json_message.split("}")[:-1]
+        json_message = "}".join(json_message)+"}"
+    json_message = json_message.strip()
+    log("Parsed JSON:")
+    log(json_message)
+    command = json.JSONDecoder().decode(json_message)
+    return command
 
 def take_action(assistant_message):
     global fail_counter
@@ -30,7 +43,7 @@ def take_action(assistant_message):
     telegram = TelegramUtils(api_key=telegram_api_key, chat_id=telegram_chat_id)
 
     try:
-        command = json.JSONDecoder().decode(assistant_message)
+        command = extract_command(assistant_message)
 
         action = command["command"]["name"]
         content = command["command"]["args"]
