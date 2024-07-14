@@ -46,7 +46,6 @@ To get started, you'll need:
 5. Run any of those local LLM servers with API enabled:
     - LMStudio
     - oobabooga/textgeneration-webui
-    - ollama
 6. Update .env file with the API URL of your local LLM.
 
 ## LLM Models known to work with Mini-AutoGPT
