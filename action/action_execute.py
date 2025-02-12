@@ -131,9 +131,7 @@ def web_search(query: str, num_results: int = 3):
         for r in search_results
     ]
 
-    results = (
-        "## Search results\n"
-    ) + "\n\n".join(
+    results = ("## Search results\n") + "\n\n".join(
         f"### \"{r['title']}\"\n"
         f"**URL:** {r['url']}  \n"
         "**Excerpt:** " + (f'"{exerpt}"' if (exerpt := r.get("exerpt")) else "N/A")

@@ -12,6 +12,7 @@ from utils.log import log
 response_queue = ""
 telegram_utils = None
 
+
 def test_init():
     """Initialize the Telegram bot with environment variables."""
     global telegram_utils
@@ -27,6 +28,7 @@ def test_init():
 
     telegram_utils = TelegramUtils(api_key=api_key, chat_id=chat_id, test_mode=True)
 
+
 def run_async(coro):
     try:
         loop = asyncio.get_running_loop()
@@ -39,8 +41,11 @@ def run_async(coro):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         return asyncio.run(coro)
 
+
 class TelegramUtils:
-    def __init__(self, api_key: str = None, chat_id: str = None, test_mode: bool = False):
+    def __init__(
+        self, api_key: str = None, chat_id: str = None, test_mode: bool = False
+    ):
         if not api_key:
             raise ValueError(
                 "No API key provided. Please set the TELEGRAM_API_KEY environment variable. "
@@ -51,8 +56,12 @@ class TelegramUtils:
         self.api_key = api_key
 
         if not chat_id:
-            log("No chat id provided. Please set the TELEGRAM_CHAT_ID environment variable.")
-            user_input = input("Would you like to send a test message to your bot to get the id? (y/n): ")
+            log(
+                "No chat id provided. Please set the TELEGRAM_CHAT_ID environment variable."
+            )
+            user_input = input(
+                "Would you like to send a test message to your bot to get the id? (y/n): "
+            )
             if user_input == "y":
                 try:
                     log("Please send a message to your telegram bot now.")
@@ -66,15 +75,21 @@ class TelegramUtils:
                     text = f"Hello! Your chat id is: {chat_id} and the confirmation code is: {confirmation}"
                     self.chat_id = chat_id
                     self._send_message(text)  # Send confirmation message
-                    log("Please set the TELEGRAM_CHAT_ID environment variable to this value.")
+                    log(
+                        "Please set the TELEGRAM_CHAT_ID environment variable to this value."
+                    )
                 except TimedOut:
-                    raise RuntimeError("Error while sending test message. Please check your Telegram bot.")
+                    raise RuntimeError(
+                        "Error while sending test message. Please check your Telegram bot."
+                    )
             else:
-                raise ValueError("Chat ID is required. Please set the TELEGRAM_CHAT_ID environment variable.")
+                raise ValueError(
+                    "Chat ID is required. Please set the TELEGRAM_CHAT_ID environment variable."
+                )
 
         if test_mode:
             return
-        
+
         self.chat_id = chat_id
         self.load_conversation_history()
 
@@ -89,7 +104,9 @@ class TelegramUtils:
             if len(self.conversation_history) == 0:
                 return "There is no previous message history."
 
-            tokens = memory.count_string_tokens(str(self.conversation_history), model_name="gpt-4")
+            tokens = memory.count_string_tokens(
+                str(self.conversation_history), model_name="gpt-4"
+            )
             if tokens > 1000:
                 log("Message history is over 1000 tokens. Summarizing...")
                 chunks = memory.chunk_text(str(self.conversation_history))
@@ -187,7 +204,9 @@ class TelegramUtils:
 
         # properly handle messages with more than 2000 characters by chunking them
         if len(message) > 2000:
-            message_chunks = [message[i:i+2000] for i in range(0, len(message), 2000)]
+            message_chunks = [
+                message[i : i + 2000] for i in range(0, len(message), 2000)
+            ]
             for message_chunk in message_chunks:
                 await bot.send_message(chat_id=recipient_chat_id, text=message_chunk)
         else:

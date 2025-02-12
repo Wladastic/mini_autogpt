@@ -12,7 +12,7 @@ setup_python() {
     fi
 
     # Use the last (highest) version found
-    PYTHON="${PYTHON_VERSIONS[-1]}"
+    PYTHON="${PYTHON_VERSIONS[${#PYTHON_VERSIONS[@]}-1]}"
     
     # Check Python version
     VERSION=$($PYTHON -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
@@ -39,4 +39,4 @@ else
 fi
 
 # Setup Python and run the application
-setup_python && python main.py
+setup_python && $PYTHON main.py

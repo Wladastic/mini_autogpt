@@ -9,16 +9,17 @@ import utils.simple_telegram as telegram
 import utils.llm as llm
 from utils.log import log
 
+
 def check_environment():
     """Check if the environment is properly configured."""
     print("Checking configuration...")
-    
+
     # Load environment variables
     load_dotenv()
     errors = []
 
     # Check LLM configuration
-    llm_server_type = os.getenv('LLM_SERVER_TYPE')
+    llm_server_type = os.getenv("LLM_SERVER_TYPE")
     if not llm_server_type:
         errors.append("LLM server type not configured. Please edit .env file.")
     elif llm_server_type not in ["lmstudio", "ollama", "oobabooga"]:
@@ -46,21 +47,24 @@ def check_environment():
     print("✅ All checks passed!")
     log("Environment check completed successfully")
 
+
 def type_text(text, delay=0.02):
     """Type out text with a typing animation."""
     for char in text:
-        print(char, end='', flush=True)
+        print(char, end="", flush=True)
         time.sleep(delay)
     print()
+
 
 def load_logo():
     """Load the ASCII art logo from file."""
     try:
-        with open('assets/logo.txt', 'r', encoding='utf-8') as f:
+        with open("assets/logo.txt", "r", encoding="utf-8") as f:
             return f.read()
     except Exception as e:
         log(f"Could not load logo: {e}")
         return ""
+
 
 def initialize():
     """Initialize Mini-AutoGPT."""
@@ -75,11 +79,12 @@ def initialize():
     print()
     memory.forget_everything()
 
+
 def main_loop():
     """Main loop for Mini-AutoGPT."""
     try:
         think.run_think()
-        
+
     except KeyboardInterrupt:
         log("Gracefully shutting down...")
     except Exception as e:
@@ -88,14 +93,16 @@ def main_loop():
         if traceback:
             log(f"Traceback: {traceback.format_exc()}")
 
+
 def start_mini_autogpt():
     """Start Mini-AutoGPT."""
     # Check configuration before anything else
     check_environment()
-    
+
     # Initialize and start the main loop
     initialize()
     main_loop()
+
 
 if __name__ == "__main__":
     start_mini_autogpt()

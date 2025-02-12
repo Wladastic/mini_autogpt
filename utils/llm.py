@@ -4,6 +4,7 @@ from utils.log import log, save_debug
 import think.memory as memory
 from dotenv import load_dotenv
 
+
 def handle_model_not_found_error(response, server_type):
     """Handle model not found errors with user-friendly messages"""
     try:
@@ -18,12 +19,13 @@ def handle_model_not_found_error(response, server_type):
         elif server_type == "oobabooga":
             log("Model not found in Oobabooga.")
             log("Please ensure you have loaded a model.")
-        
-        if os.getenv('DEBUG', 'false').lower() == 'true':
+
+        if os.getenv("DEBUG", "false").lower() == "true":
             log(f"Detailed error: {error_data}")
     except Exception as e:
         log(f"Error parsing response: {e}")
     return response
+
 
 def test_connection():
     """Test connection to LLM server based on server type."""
@@ -36,11 +38,11 @@ def test_connection():
 
         if llm_server_type == "lmstudio":
             # LM Studio uses OpenAI-style API, test models endpoint
-            base_url = api_url.rsplit('/', 1)[0]  # Remove 'chat/completions'
+            base_url = api_url.rsplit("/", 1)[0]  # Remove 'chat/completions'
             test_url = f"{base_url}/models"
             response = requests.get(test_url, timeout=5)
             save_debug({"url": test_url}, response)
-            
+
             if response.status_code == 404:
                 return "No models loaded in LM Studio. Please load a model first."
             elif response.status_code != 200:
@@ -48,17 +50,19 @@ def test_connection():
 
         elif llm_server_type == "ollama":
             # Test Ollama with a simple ping
-            response = requests.get(api_url.rsplit('/', 1)[0] + "/version", timeout=5)
+            response = requests.get(api_url.rsplit("/", 1)[0] + "/version", timeout=5)
             if response.status_code != 200:
                 return "Ollama server is not responding correctly."
-            
+
             # Check if the specified model is available
             model = os.getenv("OLLAMA_MODEL")
             if model:
                 model_url = f"{api_url.rsplit('/', 1)[0]}/tags"
                 response = requests.get(model_url, timeout=5)
                 save_debug({"url": model_url}, response)
-                if not any(model in str(tag) for tag in response.json().get("models", [])):
+                if not any(
+                    model in str(tag) for tag in response.json().get("models", [])
+                ):
                     return f"Model {model} not found in Ollama. Please run: ollama pull {model}"
 
         elif llm_server_type == "oobabooga":
@@ -74,6 +78,7 @@ def test_connection():
     except requests.exceptions.RequestException as e:
         return f"Could not connect to {llm_server_type} server at {api_url}. Is it running?"
 
+
 def one_shot_request(prompt, system_context):
     history = []
     history.append({"role": "system", "content": system_context})
@@ -84,6 +89,7 @@ def one_shot_request(prompt, system_context):
     else:
         log("Error in one_shot_request")
         return None
+
 
 def llm_request(history):
     load_dotenv()
@@ -103,16 +109,21 @@ def llm_request(history):
     }
     return send(data=data)
 
+
 def send(data):
     # load environment variables
     load_dotenv()
     api_url = os.getenv("API_URL")
-    llm_server_type = os.getenv("LLM_SERVER_TYPE", "default")  # Default to "default" if not set
+    llm_server_type = os.getenv(
+        "LLM_SERVER_TYPE", "default"
+    )  # Default to "default" if not set
 
     headers = {"Content-Type": "application/json"}
 
     try:
-        log(f"Sending request to API URL: {api_url} with LLM server type: {llm_server_type}")
+        log(
+            f"Sending request to API URL: {api_url} with LLM server type: {llm_server_type}"
+        )
         if llm_server_type == "lmstudio":
             # Get LMStudio model from environment
             lmstudio_model = os.getenv("LMSTUDIO_MODEL")
@@ -129,7 +140,9 @@ def send(data):
                 return handle_model_not_found_error(response, "lmstudio")
         elif llm_server_type == "ollama":
             # Assuming ollama uses its own specific format
-            ollama_model = os.getenv("OLLAMA_MODEL", "default")  # Default to "default" if not set
+            ollama_model = os.getenv(
+                "OLLAMA_MODEL", "default"
+            )  # Default to "default" if not set
             payload = {
                 "prompt": data["messages"][-1]["content"],
                 "model": ollama_model,
@@ -165,6 +178,7 @@ def send(data):
         log(e)
         exit(1)
 
+
 def build_context(history, conversation_history, message_history):
     context = ""
     if conversation_history:
@@ -190,6 +204,7 @@ def build_context(history, conversation_history, message_history):
             }
         )
     return history
+
 
 def build_prompt(base_prompt):
     prompt = []

@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 echo "Setting up Mini-AutoGPT development environment..."
 
@@ -14,7 +15,7 @@ setup_python() {
     fi
 
     # Use the last (highest) version found
-    PYTHON="${PYTHON_VERSIONS[-1]}"
+    PYTHON="${PYTHON_VERSIONS[${#PYTHON_VERSIONS[@]}-1]}"
     
     # Check Python version
     VERSION=$($PYTHON -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
@@ -49,8 +50,8 @@ setup_venv() {
 # Install dependencies
 install_dependencies() {
     echo "Installing dependencies..."
-    python3 -m pip install --upgrade pip
-    python3 -m pip install -r requirements.txt
+    python -m pip install --upgrade pip setuptools wheel
+    python -m pip install -r requirements.txt
 }
 
 # Create .env file if it doesn't exist
@@ -66,6 +67,12 @@ setup_env() {
 main() {
     setup_python
     setup_venv
+    echo "Activating virtual environment..."
+    if [ -n "$ZSH_VERSION" ]; then
+        source .venv/bin/activate
+    else
+        . .venv/bin/activate
+    fi
     install_dependencies
     setup_env
     
