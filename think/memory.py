@@ -1,30 +1,17 @@
 import json
 import traceback
 
-import tiktoken
-
 import think.prompt as prompt
 import utils.llm as llm
-
 
 def log(message):
     # print with purple color
     print("\033[94m" + str(message) + "\033[0m")
 
-
 def count_string_tokens(text, model_name="gpt-3.5-turbo"):
     """Returns the number of tokens used by a list of messages."""
-    model = model_name
-    try:
-        encoding = tiktoken.encoding_for_model(model)
-        return len(encoding.encode(text))
-    except KeyError:
-        encoding = tiktoken.get_encoding("cl100k_base")
-    # note: future models may deviate from this
-    except Exception as e:
-        log(f"Sophie: Error while counting tokens: {e}")
-        log(traceback.format_exc())
-
+    # Approximate token count using character count divided by 4 (average characters per token)
+    return len(text) // 4
 
 def summarize_text(text, max_new_tokens=100):
     """
@@ -54,7 +41,6 @@ def summarize_text(text, max_new_tokens=100):
 
     return summary
 
-
 def chunk_text(text, max_tokens=3000):
     """Split a piece of text into chunks of a certain size."""
     chunks = []
@@ -72,7 +58,6 @@ def chunk_text(text, max_tokens=3000):
     chunks.append(chunk)  # Don't forget the last chunk!
     return chunks
 
-
 def summarize_chunks(chunks):
     """Generate a summary for each chunk of text."""
     summaries = []
@@ -84,7 +69,6 @@ def summarize_chunks(chunks):
             log(f"Error while summarizing text: {e}")
             summaries.append(chunk)  # If summarization fails, use the original text.
     return summaries
-
 
 def get_previous_message_history():
     """Get the previous message history."""
@@ -107,7 +91,6 @@ def get_previous_message_history():
         log(traceback.format_exc())
         exit(1)
 
-
 def load_conversation_history(self):
     """Load the conversation history from a file."""
     try:
@@ -119,25 +102,20 @@ def load_conversation_history(self):
     log("Loaded conversation history:")
     log(self.conversation_history)
 
-
 def save_conversation_history(self):
     """Save the conversation history to a file."""
     with open("conversation_history.json", "w") as f:
         json.dump(self.conversation_history, f)
-
 
 def add_to_conversation_history(self, message):
     """Add a message to the conversation history and save it."""
     self.conversation_history.append(message)
     self.save_conversation_history()
 
-
 def forget_conversation_history(self):
     """Forget the conversation history."""
     self.conversation_history = []
     self.save_conversation_history()
-
-
 
 def load_memories():
     """Load the memories from a file."""
@@ -150,7 +128,6 @@ def load_memories():
         # If the file doesn't exist, create it.
         return []
 
-
 def forget_memory(id):
     """Forget given memory"""
     memory_history = []
@@ -159,19 +136,16 @@ def forget_memory(id):
             memory_history.append(mem)
     save_memories(history=memory_history)
 
-
 def save_memories(history):
     """Save the memories to a file."""
     with open("memories.json", "w") as f:
         json.dump(history, f)
-
 
 def save_memory(memory):
     """Save an individual thought string to the history."""
     memory_history = load_memories()
     memory_history.append(memory)
     save_memories(history=memory_history)
-
 
 def get_response_history():
     """Retrieve the history of responses."""
@@ -196,7 +170,6 @@ def get_response_history():
         log(traceback.format_exc())
         exit(1)
 
-
 def load_response_history():
     """Load the response history from a file."""
     try:
@@ -207,19 +180,16 @@ def load_response_history():
         # If the file doesn't exist, create it with an empty list.
         return []
 
-
 def save_response_history(history):
     """Save the response history to a file."""
     with open("response_history.json", "w") as f:
         json.dump(history, f)
-
 
 def add_to_response_history(question, response):
     """Add a question and its corresponding response to the history."""
     response_history = load_response_history()
     response_history.append({"question": question, "response": response})
     save_response_history(response_history)
-
 
 def get_previous_thought_history():
     """Get the previous message history."""
@@ -243,7 +213,6 @@ def get_previous_thought_history():
         log(traceback.format_exc())
         exit(1)
 
-
 def load_thought_history():
     """Load the thought history from a file."""
     try:
@@ -255,12 +224,10 @@ def load_thought_history():
         # If the file doesn't exist, create it.
         return []
 
-
 def save_thought_history(history):
     """Save the thought history to a file."""
     with open("thought_history.json", "w") as f:
         json.dump(history, f)
-
 
 class Thought:
     def __init__(self, thought, context, summary) -> None:
@@ -270,7 +237,6 @@ class Thought:
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
-
 
 def save_thought(thought, context=None):
     """Save an individual thought string to the history."""
@@ -282,7 +248,6 @@ def save_thought(thought, context=None):
 
     history.append(new_thought)
     save_thought_history(history=history)
-
 
 def forget_everything():
     """Forget everything."""

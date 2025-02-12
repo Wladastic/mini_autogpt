@@ -1,6 +1,5 @@
 python-telegram-bot
-tiktoken
 requests
 python-dotenv
 asyncio
-duckduckgo_search
+duckduckgo-search

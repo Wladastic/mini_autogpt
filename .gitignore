@@ -1,4 +1,8 @@
+# ignore personal files
 .env
+memories.json
+response_history.json
+thought_history.json
 
 # ignore all python cache files
 global-exclude __pycache__
@@ -9,3 +13,6 @@ global-exclude *.pyc
 memories.json
 response_history.json
 thought_history.json
+
+# ignore virtual environment
+.venv

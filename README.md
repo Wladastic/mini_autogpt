@@ -1,11 +1,10 @@
-# Mini-AutoGPT 🤖🚀
+# Mini-AutoGPT
 
-Welcome to the home of Mini-AutoGPT, the pocket-sized AI with the heart of a giant. Here to demonstrate that local LLMs can still rock your digital world, Mini-AutoGPT runs on pure Python 3.11 and communicates through the magic of `python-telegram-bot`. It's experimental, autonomous, and always ready to chat—what more could you ask for in a desktop companion?
+Mini-AutoGPT is a demonstration of a fully autonomous AI using local LLMs. It is built with Python 3.11 and uses `python-telegram-bot` for communication. This project serves as a guide for readers of my book "Unlocking the Power of Auto-GPT and Its Plugins" and as a preview of Sophie-AI, a more advanced autonomous AI. It defaults to Llama 3.1 8B and LM Studio.
 
-This Repository is mainly a demonstration for using local LLMs for fully autonomous AI.
-It is meant as a guide for readers of my Book "Unlocking the Power of Auto-GPT and Its Plugins"
+### Important Note
 
-This Repository is also a Preview of Sophie-AI, a fully autonomous AI that runs on your local machine and can be used for various tasks, which acomplishes more complex thoughts and tasks than Mini-AutoGPT.
+This project uses the `python-telegram-bot` library for Telegram communication. Please ensure you install the correct package using `python-telegram-bot`. Installing the `telegram` package will not work and is not supported.
 
 ## Table of Contents 📚
 
@@ -19,66 +18,79 @@ This Repository is also a Preview of Sophie-AI, a fully autonomous AI that runs 
 
 ## What's Cooking?
 
-Mini-AutoGPT isn't just a stripped-down version of some monolithic AI—it's your friendly neighborhood bot that lives right in your Telegram! It’s designed to be simple enough for anyone to tinker with, yet robust enough to handle the sophisticated needs of modern chat applications.
+Mini-AutoGPT is a lightweight AI bot designed to run locally and interact with you via Telegram. It's simple to use and modify, capable of handling complex chat applications, and allows local AI experimentation without cloud services.
 
-Due to the nature of local LLMs (3B, 4B, 7B, 8B etc.) being smaller than their cloud counterparts, Mini-AutoGPT is a great way to experiment with AI on your local machine without having to pay for cloud services.
+Key components:
 
-
-Here's a sneak peek of its main ingredients:
-
-- **Python 3.11**: Fresh and powerful.
-- **python-telegram-bot**: Connects you directly to your users via Telegram.
-- **Autonomy**: Runs fully on its own, no hand-holding required.
+- **Python 3.11**: Core language
+- **python-telegram-bot**: Telegram communication
+- **Autonomy**: No manual intervention
 
 ## Setup
 
-To get started, you'll need:
+To get started:
 
-1. Python 3.11 installed on your machine.
+1. Python 3.11 or later installed on your machine.
 2. A Telegram bot token (get yours from [@BotFather](https://t.me/BotFather)).
-3. Clone this repository and install dependencies:
-
+3. Clone this repository:
     ```bash
     git clone https://github.com/yourusername/mini-autogpt.git
     cd mini-autogpt
-    pip install -r requirements.txt
-4. Update the .env file with your Telegram bot token.
-5. Run any of those local LLM servers with API enabled:
+    ```
+4. Run the setup script:
+    ```bash
+    ./setup.sh
+    ```
+   This will:
+   - Create a Python virtual environment
+   - Install all dependencies
+   - Create a .env file from template
+5. Run a local LLM server:
     - LMStudio
     - oobabooga/textgeneration-webui
-6. Update .env file with the API URL of your local LLM.
+    - Ollama
+6. Update `.env` with the API URL and server type. Examples:
+
+    - **LMStudio:**
+        ```
+        API_URL="http://localhost:1234/v1/chat/completions"
+        LLM_SERVER_TYPE="lmstudio"
+        ```
+    - **Ollama:**
+        ```
+        API_URL="http://localhost:11434/api/generate"
+        LLM_SERVER_TYPE="ollama"
+        ```
+    - **oobabooga/textgeneration-webui:**
+        ```
+        API_URL="[The API URL provided by the web UI]"
+        LLM_SERVER_TYPE="oobabooga"
+        ```
 
 ## LLM Models known to work with Mini-AutoGPT
-- Meta/LLama-3-8B-Instruct (preferable a variation with more context length)
+- Meta/LLama-3-8B-Instruct
 - NousResearch/Hermes-2-Pro-Mistral-7B
 - argilla/CapybaraHermes-2.5-Mistral-7B
 - Intel/neural-chat-7b-v3-1
 - Nexusflow/Starling-LM-7B-beta
 - mistralai/Mixtral-8x7B-Instruct-v0.1
 
-
 ## Usage 🔧
 
-Just run the script, and your bot will come to life:
+After setup, run the script:
 
 ```bash
 ./run.sh
 ```
 
-or
-
-```bash
-python3.11 main.py
-```
-
 ## Experimental Notice 🧪
 
-Mini-AutoGPT is still experimental. It might get a little too excited and repeat what you say or surprise you with unexpected wisdom. Handle it with care and affection!
+Mini-AutoGPT is still experimental software. It may exhibit unexpected behavior. Please use with caution.
 
 ## Contributing 🤝
 
 Feel free to fork, star, and submit pull requests.
-Bugs can be reported in the issues section. Help Mini-AutoGPT learn the ways of this vast digital universe!
+Bugs can be reported in the issues section. Contributions are welcome!
 
 Mini-AutoGPT in Action 🎬
 
@@ -129,4 +141,4 @@ Mini-AutoGPT: Small in size, big on personality. 🌟
 
 ## License 📜
 
-This project is licensed under the MIT License. For more information, please refer to the [LICENSE](LICENSE) file.
+This project is licensed under the MIT License.
