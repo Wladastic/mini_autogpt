@@ -1,72 +1,101 @@
+import os
 import time
-import think.think as think
+import traceback
+from dotenv import load_dotenv
+
 import think.memory as memory
+import think.think as think
+import utils.simple_telegram as telegram
+import utils.llm as llm
+from utils.log import log
 
-# this is a test for using history from sophie_chat instead of the message history.
+def check_environment():
+    """Check if the environment is properly configured."""
+    print("Checking configuration...")
+    
+    # Load environment variables
+    load_dotenv()
+    errors = []
 
-# feedback: It kindda works. But for some reason the llm starts repeating my input
-# maybe having it structured like "plan:..." "context: summarized history" and "last few messages: ..." makes more sense?
+    # Check LLM configuration
+    llm_server_type = os.getenv('LLM_SERVER_TYPE')
+    if not llm_server_type:
+        errors.append("LLM server type not configured. Please edit .env file.")
+    elif llm_server_type not in ["lmstudio", "ollama", "oobabooga"]:
+        errors.append(f"Invalid LLM server type: {llm_server_type}")
+    else:
+        # Test LLM connection
+        error = llm.test_connection()
+        if error:
+            errors.append(error)
 
+    # Initialize and test Telegram connection
+    try:
+        telegram.test_init()
+    except Exception as e:
+        errors.append(str(e))
 
-def log(message):
-    # print with white color
-    print("\033[0m" + str(message) + "\033[0m")
+    # If there are any errors, display them and exit
+    if errors:
+        print("\nConfiguration errors found:")
+        for error in errors:
+            print(f"- {error}")
+        print("\nPlease fix these issues and try again.")
+        exit(1)
 
+    print("✅ All checks passed!")
+    log("Environment check completed successfully")
 
-def write_start_message():
-    pic = """                           
-                                                 
-                         ░▓█▓░░                          
-         ▒▒▒      ██░ ░░░░░░░░░░ ░░██░      ▒░           
-         ▒▒▒░ ░█░░▒░░░░░░░░░     ░░░▒ ░█   ░▒░░          
-      ▒░    ░█ ▒▒░░░░░░░░░░░░░░░░░░░░▒▒▒ █      ░▒       
-     ░▒▒░  ▒░▒▒▒░███░░░░░░░░░░░░░░░███░▒▒░▓░  ▒▒▒░▒▒     
-      ░   ▒░▒▒▒░░░░░░░░░░░░░░░░░░░░░░░░░▒▒▒░    ░▒       
-          █▒▒░░██░░░▒░░░░░░░░░░░░░░░░░██░░▒▒█            
-   ▒░░▒  █░▒▒░█░█▓░   █░░░░░░░░░█   █▒█░█░▒▒░░           
-         █░▒▒█░████   ██░░░░░░░██  ░████░█▒▒░█  ▒░░▒     
-         █░▒▒█ █▓░░█▒░▓█░█░░▓▓░█▓░██░█▓█ ▒▒▒░░    ░      
-         ░█▒▒▒░ ▓░░░░░█░░░▒▒▒░░░█░░░░▓░ ░▒▒░█            
-    ░█░█░ ░█▒▒▒▓▒░▒░░░░░░░░░░░░░░░░░▒▓▓▒▒▒░█  ▒░░█░      
-   █░░░█    █░▒▒▒▒▒▒▒▒▒░░░░░░░░░░▒▒▒▒▒▒▒▒░█   ░█░░░█     
-   █▓▒░░ ████▓██▒▒▓▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▓▒▒██▓████░░░▒▓█     
-   █▒▒▓▒░▒▒▒▒▓█▓▒▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▒▓█▒▒▒▒▒░▒▓▓▒▓     
-    ▓▒██░░   ░░░░░░▓▓▒░░░░▓▓▓░░░░▒▓▓░░░░░░    ░██▒░      
-    █░░░░░░░░░░░░▒▓█░▒░░░░▒▓▒░░░░▒░█▓░░░░░░░░░░░░░█      
-    █▓░░▓▓▒▒▒█░░░░░█░░░░░▒▓▓▓▒░░░░░█░░░░░█▒▒▒▒▓░░▒█      
-     ███░░▓▓█▒▓▒▒▒░░░░░▒▒▓▒█▓▓▒░░░░░░▒▒▓▓▒▓▓▓░░▓██       
-     ░░░█████▓▒░▒▒░▒▒▒▒▒▒▒█░█▓▒▒▒▒▒▒▒▒▓▒░██████░░░       
-      ░░░░░░░░██░░█▓░▒▒░█░░░░░█░█░░█▒░▒██░░░░░░░         
-             ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░                             
-              
-"""
-    message = """Hello my friend!
-I am Mini-Autogpt, a small version of Autogpt for smaller llms.
-I am here to help you and will try to contact you as soon as possible!
+def type_text(text, delay=0.02):
+    """Type out text with a typing animation."""
+    for char in text:
+        print(char, end='', flush=True)
+        time.sleep(delay)
+    print()
 
-Note: I am still in development, so please be patient with me! <3
+def load_logo():
+    """Load the ASCII art logo from file."""
+    try:
+        with open('assets/logo.txt', 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        log(f"Could not load logo: {e}")
+        return ""
 
-"""
-    # write the pic in print line by line with a tiny delay between each line, then add the message below as if someone was typing it.
-    for line in pic.split("\n"):
-        print(line)
-        time.sleep(0.1)
-    for char in message:
-        print(char, end="", flush=True)
-        time.sleep(0.05)
+def initialize():
+    """Initialize Mini-AutoGPT."""
+    logo = load_logo()
+    print(logo)
 
-
-def start_mini_autogpt():
-    write_start_message()
-
-    # delete thoughts from memory
+    type_text("Hello my friend!")
+    type_text("I am Mini-Autogpt, a small version of Autogpt for smaller llms.")
+    type_text("I am here to help you and will try to contact you as soon as possible!")
+    print()
+    type_text("Note: I am still in development, so please be patient with me! <3")
+    print()
     memory.forget_everything()
 
-    # run the main loop, nothing more to do in main.py
-    while True:
+def main_loop():
+    """Main loop for Mini-AutoGPT."""
+    try:
         think.run_think()
+        
+    except KeyboardInterrupt:
+        log("Gracefully shutting down...")
+    except Exception as e:
+        if str(e):
+            log(f"Error: {str(e)}")
+        if traceback:
+            log(f"Traceback: {traceback.format_exc()}")
 
+def start_mini_autogpt():
+    """Start Mini-AutoGPT."""
+    # Check configuration before anything else
+    check_environment()
+    
+    # Initialize and start the main loop
+    initialize()
+    main_loop()
 
 if __name__ == "__main__":
-    fail_counter = 0
-    start_mini_autogpt()()
+    start_mini_autogpt()

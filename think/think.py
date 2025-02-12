@@ -14,19 +14,11 @@ def debug_log(message):
     if DEBUG:
         log(message)
 
-def handle_api_error(response):
-    """Handle API error responses"""
-    error_msg = f"API returned status code {response.status_code}"
-    try:
-        error_details = response.json().get('error', response.text)
-        error_msg += f": {error_details}"
-    except:
-        error_msg += f": {response.text}"
-    raise Exception(error_msg)
-
 def run_think():
     try:
         thinking = think()
+        if thinking is None:
+            return
         print("THOUGHTS : " + thinking)
         decision = decide(thinking)
         print("DECISIONS : " + str(decision))
@@ -34,8 +26,11 @@ def run_think():
         print("EVALUATED DECISION : " + str(evaluated_decision))
         take_action(evaluated_decision)
     except Exception as e:
-        log(f"Error in thinking process: {e}\n{traceback.format_exc()}")
-        raise
+        if DEBUG:
+            log(f"Error in thinking process: {e}")
+            log(f"Traceback: {traceback.format_exc()}")
+        else:
+            log(f"Error: {str(e)}")
 
 def evaluate_decision(thoughts, decision):
     history = llm.build_prompt(prompt.evaluation_prompt)
@@ -43,7 +38,9 @@ def evaluate_decision(thoughts, decision):
     
     response = llm.llm_request(history)
     if response.status_code != 200:
-        handle_api_error(response)
+        if DEBUG:
+            debug_log(f"Error in evaluate_decision: {response.status_code} - {response.text}")
+        return None
     
     return response.json()["choices"][0]["message"]["content"]
 
@@ -74,7 +71,9 @@ def think():
     response = llm.llm_request(history)
     
     if response.status_code != 200:
-        handle_api_error(response)
+        if DEBUG:
+            debug_log(f"Error in think: {response.status_code} - {response.text}")
+        return None
 
     thoughts = response.json()["choices"][0]["message"]["content"]
     debug_log("*** Thinking process completed! *** \n")

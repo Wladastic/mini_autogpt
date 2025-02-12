@@ -1,18 +1,31 @@
-# ignore personal files
+# Environment variables
 .env
-memories.json
-response_history.json
-thought_history.json
 
-# ignore all python cache files
-global-exclude __pycache__
-global-exclude *.pyc
-*.pyc
+# Python virtual environment
+.venv/
+venv/
 
-# ignore memory json files
-memories.json
-response_history.json
-thought_history.json
+# Debug files
+debug/
+debug_data.json
+debug_response.json
 
-# ignore virtual environment
-.venv
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Python distribution/packaging
+dist/
+build/
+*.egg-info/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -7,10 +7,25 @@ from telegram import Bot, Update
 from telegram.error import TimedOut
 from telegram.ext import CallbackContext
 import think.memory as memory
-
+from utils.log import log
 
 response_queue = ""
+telegram_utils = None
 
+def test_init():
+    """Initialize the Telegram bot with environment variables."""
+    global telegram_utils
+
+    # Ensure both values are provided and not default template values
+    api_key = os.getenv("TELEGRAM_API_KEY")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+
+    if not api_key or api_key == "your_telegram_api_key":
+        raise ValueError("Telegram API key not configured. Please edit .env file.")
+    if not chat_id or chat_id == "your_telegram_chat_id":
+        raise ValueError("Telegram chat ID not configured. Please edit .env file.")
+
+    telegram_utils = TelegramUtils(api_key=api_key, chat_id=chat_id, test_mode=True)
 
 def run_async(coro):
     try:
@@ -24,33 +39,20 @@ def run_async(coro):
             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         return asyncio.run(coro)
 
-
-def log(message):
-    # print with purple color
-    print("\033[95m" + str(message) + "\033[0m")
-
-
 class TelegramUtils:
-    def __init__(self, api_key: str = None, chat_id: str = None):
+    def __init__(self, api_key: str = None, chat_id: str = None, test_mode: bool = False):
         if not api_key:
-            log(
-                "No api key provided. Please set the TELEGRAM_API_KEY environment variable."
+            raise ValueError(
+                "No API key provided. Please set the TELEGRAM_API_KEY environment variable. "
+                "You can get your API key by talking to @BotFather on Telegram. "
+                "For more information, visit: https://core.telegram.org/bots/tutorial#6-botfather"
             )
-            log("You can get your api key by talking to @BotFather on Telegram.")
-            log(
-                "For more information, please visit: https://core.telegram.org/bots/tutorial#6-botfather"
-            )
-            exit(1)
 
         self.api_key = api_key
 
         if not chat_id:
-            log(
-                "Telegram: No chat id provided. Please set the TELEGRAM_CHAT_ID environment variable."
-            )
-            user_input = input(
-                "Would you like to send a test message to your bot to get the id? (y/n): "
-            )
+            log("No chat id provided. Please set the TELEGRAM_CHAT_ID environment variable.")
+            user_input = input("Would you like to send a test message to your bot to get the id? (y/n): ")
             if user_input == "y":
                 try:
                     log("Please send a message to your telegram bot now.")
@@ -64,13 +66,15 @@ class TelegramUtils:
                     text = f"Hello! Your chat id is: {chat_id} and the confirmation code is: {confirmation}"
                     self.chat_id = chat_id
                     self._send_message(text)  # Send confirmation message
-                    log(
-                        "Please set the TELEGRAM_CHAT_ID environment variable to this value."
-                    )
+                    log("Please set the TELEGRAM_CHAT_ID environment variable to this value.")
                 except TimedOut:
-                    log(
-                        "Error while sending test message. Please check your Telegram bot."
-                    )
+                    raise RuntimeError("Error while sending test message. Please check your Telegram bot.")
+            else:
+                raise ValueError("Chat ID is required. Please set the TELEGRAM_CHAT_ID environment variable.")
+
+        if test_mode:
+            return
+        
         self.chat_id = chat_id
         self.load_conversation_history()
 
@@ -85,9 +89,7 @@ class TelegramUtils:
             if len(self.conversation_history) == 0:
                 return "There is no previous message history."
 
-            tokens = memory.count_string_tokens(
-                str(self.conversation_history), model_name="gpt-4"
-            )
+            tokens = memory.count_string_tokens(str(self.conversation_history), model_name="gpt-4")
             if tokens > 1000:
                 log("Message history is over 1000 tokens. Summarizing...")
                 chunks = memory.chunk_text(str(self.conversation_history))
@@ -157,21 +159,17 @@ class TelegramUtils:
         return authorized
 
     def handle_response(self, update: Update, context: CallbackContext):
+        global response_queue
         try:
             log("Received response: " + update.message.text)
-
             if self.is_authorized_user(update):
-                response_queue.put(update.message.text)
+                response_queue = update.message.text
         except Exception as e:
             log(e)
 
     async def get_bot(self):
-        bot_token = self.api_key
-        bot = Bot(token=bot_token)
-        commands = await bot.get_my_commands()
-        if len(commands) == 0:
-            await self.set_commands(bot)
-        return bot
+        """Get or create a bot instance."""
+        return Bot(token=self.api_key)
 
     def _send_message(self, message, speak=False):
         try:
@@ -189,9 +187,7 @@ class TelegramUtils:
 
         # properly handle messages with more than 2000 characters by chunking them
         if len(message) > 2000:
-            message_chunks = [
-                message[i : i + 2000] for i in range(0, len(message), 2000)
-            ]
+            message_chunks = [message[i:i+2000] for i in range(0, len(message), 2000)]
             for message_chunk in message_chunks:
                 await bot.send_message(chat_id=recipient_chat_id, text=message_chunk)
         else:
@@ -203,7 +199,6 @@ class TelegramUtils:
         global response_queue
 
         response_queue = ""
-        # await delete_old_messages()
 
         log("Asking user: " + prompt)
         await self._send_message_async(message=prompt, speak=speak)
@@ -232,22 +227,12 @@ class TelegramUtils:
                     last_messages.append(u.message.text)
                 else:
                     log("no text in message in update: " + str(u))
-            last_messages = []
-            for u in last_update:
-                if not self.is_authorized_user(u):
-                    continue
-                if u.message:
-                    if u.message.text:
-                        last_messages.append(u.message.text)
-                    else:
-                        log("no text in message in update: " + str(u))
-            # itarate and check if last messages are already known, if not add to history
+            # iterate and check if last messages are already known, if not add to history
             for message in last_messages:
                 self.add_to_conversation_history("User: " + message)
 
             log("last messages: " + str(last_messages))
             last_update_id = last_update[-1].update_id
-
         else:
             last_update_id = -11
 
