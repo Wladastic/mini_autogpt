@@ -14,19 +14,18 @@ telegram_utils = None
 
 
 def test_init():
-    """Initialize the Telegram bot with environment variables."""
-    global telegram_utils
+    """Test the Telegram bot with environment variables."""
 
     # Ensure both values are provided and not default template values
     api_key = os.getenv("TELEGRAM_API_KEY")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
 
     if not api_key or api_key == "your_telegram_api_key":
-        raise ValueError("Telegram API key not configured. Please edit .env file.")
+        api_key = None
     if not chat_id or chat_id == "your_telegram_chat_id":
-        raise ValueError("Telegram chat ID not configured. Please edit .env file.")
+        chat_id = None
 
-    telegram_utils = TelegramUtils(api_key=api_key, chat_id=chat_id, test_mode=True)
+    TelegramUtils(api_key=api_key, chat_id=chat_id, test_mode=True)
 
 
 def run_async(coro):
@@ -72,12 +71,25 @@ class TelegramUtils:
                     log("And the message is: " + update.message.text)
                     confirmation = random.randint(1000, 9999)
                     log("Sending confirmation message: " + str(confirmation))
-                    text = f"Hello! Your chat id is: {chat_id} and the confirmation code is: {confirmation}"
+                    text = (
+                        f"Hello! Your chat id is: {chat_id} and the confirmation "
+                        f"code is: {confirmation}"
+                    )
                     self.chat_id = chat_id
                     self._send_message(text)  # Send confirmation message
-                    log(
-                        "Please set the TELEGRAM_CHAT_ID environment variable to this value."
+                    terminal_confirm = input(
+                        "Enter the confirmation code from Telegram: "
                     )
+                    if str(terminal_confirm) != str(confirmation):
+                        raise ValueError("Invalid confirmation code. Setup aborted.")
+                    log("Confirmation code verified successfully.")
+                    self.chat_id = None
+                    log(
+                        "Please set TELEGRAM_CHAT_ID environment variable to: "
+                        + str(chat_id)
+                    )
+                    log("Then restart the program.")
+                    exit(0)
                 except TimedOut:
                     raise RuntimeError(
                         "Error while sending test message. Please check your Telegram bot."
@@ -145,7 +157,7 @@ class TelegramUtils:
 
     async def poll_anyMessage_async(self):
         bot = Bot(token=self.api_key)
-        last_update = await bot.get_updates(timeout=30)
+        last_update = await bot.get_updates(timeout=5)
         if len(last_update) > 0:
             last_update_id = last_update[-1].update_id
         else:
@@ -154,7 +166,8 @@ class TelegramUtils:
         while True:
             try:
                 log("Waiting for first message...")
-                updates = await bot.get_updates(offset=last_update_id + 1, timeout=30)
+                updates = await bot.get_updates(offset=last_update_id + 1, timeout=5)
+                print("Updates: ", updates)
                 for update in updates:
                     if update.message:
                         return update

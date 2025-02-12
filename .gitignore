@@ -29,3 +29,7 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+conversation_history.json
+response_history.json
+response_history.json
+thought_history.json

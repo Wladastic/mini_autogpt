@@ -82,16 +82,17 @@ def initialize():
 
 def main_loop():
     """Main loop for Mini-AutoGPT."""
-    try:
-        think.run_think()
+    while True:
+        try:
+            think.run_think()
 
-    except KeyboardInterrupt:
-        log("Gracefully shutting down...")
-    except Exception as e:
-        if str(e):
-            log(f"Error: {str(e)}")
-        if traceback:
-            log(f"Traceback: {traceback.format_exc()}")
+        except KeyboardInterrupt:
+            log("Gracefully shutting down...")
+        except Exception as e:
+            if str(e):
+                log(f"Error: {str(e)}")
+            if traceback:
+                log(f"Traceback: {traceback.format_exc()}")
 
 
 def start_mini_autogpt():

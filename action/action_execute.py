@@ -95,7 +95,7 @@ def take_action(assistant_message):
         log("END OF ERROR WITHIN JSON RESPONSE!")
 
 
-def safe_google_results(results: str | list):
+def safe_google_results(results: str or list):
     if isinstance(results, list):
         safe_message = json.dumps(
             [result.encode("utf-8", "ignore").decode("utf-8") for result in results]

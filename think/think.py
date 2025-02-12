@@ -1,6 +1,8 @@
 import json
 import os
 import traceback
+
+from dotenv import load_dotenv
 import think.memory as memory
 import think.prompt as prompt
 import utils.llm as llm
@@ -8,6 +10,7 @@ from action.action_decisions import decide
 from action.action_execute import take_action
 from utils.log import log
 
+load_dotenv()
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 
@@ -24,9 +27,14 @@ def run_think():
         print("THOUGHTS : " + thinking)
         decision = decide(thinking)
         print("DECISIONS : " + str(decision))
-        evaluated_decision = evaluate_decision(thinking, decision)
-        print("EVALUATED DECISION : " + str(evaluated_decision))
-        take_action(evaluated_decision)
+
+        # Evaluate decision if extended thinking is enabled, otherwise... be bold..
+        if os.getenv("EXTENDED_THINKING", "false").lower() == "true":
+            evaluated_decision = evaluate_decision(thinking, decision)
+            print("EVALUATED DECISION : " + str(evaluated_decision))
+            take_action(evaluated_decision)
+        else:
+            take_action(decision)
     except Exception as e:
         if DEBUG:
             log(f"Error in thinking process: {e}")

@@ -40,15 +40,27 @@ def decide(thoughts):
         },
     )
 
-    response = llm.llm_request(history)
+    try:
+        response = llm.llm_request(history)
 
-    if response.status_code == 200:
-        # Extracting and printing the assistant's message
-        assistant_message = response.json()["choices"][0]["message"]["content"]
+        if response is None or response.status_code != 200:
+            log("Invalid response from LLM")
+            return None
+
+        response_json = response.json()
+        if not response_json or "choices" not in response_json:
+            log("Invalid response format")
+            return None
+
+        assistant_message = response_json["choices"][0]["message"]["content"]
         log("finished deciding!")
 
         if not validate_json(assistant_message):
+            # First try extracting JSON from the full response
             assistant_message = extract_json_from_response(assistant_message)
+            if assistant_message is None:
+                log("Could not extract valid JSON from response")
+                return None
 
         if validate_json(assistant_message):
             return assistant_message
@@ -61,8 +73,12 @@ def decide(thoughts):
             save_debug(history, response=response.json())
             log("Retry Decision as faulty JSON!")
             return decide(thoughts)
-    else:
-        raise Exception
+    except KeyboardInterrupt:
+        exit(0)
+    except Exception as e:
+        log(f"Error during decision making: {str(e)}")
+        log(traceback.format_exc())
+        exit(1)
 
 
 def validate_json(test_response):
