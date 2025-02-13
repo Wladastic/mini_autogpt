@@ -53,7 +53,7 @@ To get started:
 
     - **LMStudio:**
         ```
-        API_URL="http://localhost:1234/v1/chat/completions"
+        API_URL="http://localhost:1234/v1/"
         LLM_SERVER_TYPE="lmstudio"
         ```
     - **Ollama:**
