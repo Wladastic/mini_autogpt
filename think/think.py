@@ -8,16 +8,14 @@ import think.prompt as prompt
 import utils.llm as llm
 from action.action_decisions import decide
 from action.action_execute import take_action
-from utils.log import log
+from utils.log import log, save_debug
 
 load_dotenv()
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
-
 def debug_log(message):
     if DEBUG:
         log(message)
-
 
 def run_think():
     try:
@@ -35,13 +33,15 @@ def run_think():
             take_action(evaluated_decision)
         else:
             take_action(decision)
+    except KeyboardInterrupt:
+        # Let the main loop handle keyboard interrupts
+        raise
     except Exception as e:
         if DEBUG:
             log(f"Error in thinking process: {e}")
             log(f"Traceback: {traceback.format_exc()}")
         else:
             log(f"Error: {str(e)}")
-
 
 def evaluate_decision(thoughts, decision):
     history = llm.build_prompt(prompt.evaluation_prompt)
@@ -57,8 +57,8 @@ def evaluate_decision(thoughts, decision):
             )
         return None
 
+    save_debug(history, response, request_type="evaluate")
     return response.json()["choices"][0]["message"]["content"]
-
 
 def think():
     """
@@ -68,19 +68,46 @@ def think():
 
     # Build context from history
     history = llm.build_prompt(prompt.thought_prompt)
+    
+    # Get recent histories
     thought_history = memory.load_thought_history()
-    thought_summaries = [json.loads(item)["summary"] for item in thought_history]
+    response_history = memory.load_response_history()
+    
+    # Use only recent history to avoid loops
+    recent_thought_history = thought_history[-3:] if thought_history else []
+    recent_response_history = response_history[-4:] if response_history else []
+    
+    # Extract summaries and check for repetition
+    thought_summaries = []
+    recent_actions = []
+    try:
+        for item in recent_thought_history:
+            thought_data = json.loads(item)
+            thought_summaries.append(thought_data["summary"])
+            if "action" in thought_data:
+                recent_actions.append(thought_data["action"])
+    except (json.JSONDecodeError, KeyError) as e:
+        debug_log(f"Error parsing thought history: {e}")
+    
+    # Add instructions about repetition
+    history.append({
+        "role": "system",
+        "content": "Note: Avoid repeating recent thoughts or suggestions. "
+                  f"Recent actions suggested: {recent_actions}"
+    })
 
+    # Add context
     history = llm.build_context(
         history=history,
         conversation_history=thought_summaries,
-        message_history=memory.load_response_history()[-2:],
+        message_history=recent_response_history,
     )
 
     history.append(
         {
             "role": "user",
-            "content": "Formulate your thoughts and explain them as detailed as you can.",
+            "content": "Formulate your thoughts and explain them as detailed as you can. "
+                      "Consider previous responses and avoid repeating suggestions.",
         }
     )
 
@@ -93,6 +120,7 @@ def think():
             debug_log(f"Error in think: {response.status_code} - {response.text}")
         return None
 
+    save_debug(history, response, request_type="think")
     thoughts = response.json()["choices"][0]["message"]["content"]
     debug_log("*** Thinking process completed! *** \n")
     memory.save_thought(thoughts, context=history)
