@@ -66,16 +66,17 @@ def load_logo():
         log(f"Could not load logo: {e}")
         return ""
     
-def type_logo(logo, delay=0.08):
+def type_logo(logo, delay=0.04):
     """Type out the ASCII art logo."""
     for line in logo.split("\n"):
-        type_text(line, delay=delay)
+        print(line, flush=True)
+        time.sleep(delay)
 
 
 def initialize():
     """Initialize Mini-AutoGPT."""
     logo = load_logo()
-    type_text(logo, delay=0.005)
+    type_logo(logo)
 
     type_text("Hello my friend!")
     type_text("I am Mini-Autogpt, a small version of Autogpt for smaller llms.")

@@ -28,7 +28,11 @@ def take_action(assistant_message):
     telegram = TelegramUtils(api_key=telegram_api_key, chat_id=telegram_chat_id)
 
     try:
-        command = json.JSONDecoder().decode(assistant_message)
+        # only if the assistant_message is a string, it is converted to a dictionary
+        if isinstance(assistant_message, str):
+            command = json.JSONDecoder().decode(assistant_message)
+        else:
+            command = assistant_message
 
         action = command["command"]["name"]
         content = command["command"]["args"]
