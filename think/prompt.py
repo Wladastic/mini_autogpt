@@ -9,7 +9,7 @@ json_schema = """RESPOND WITH ONLY VALID JSON CONFORMING TO THE FOLLOWING SCHEMA
 commands = [
     {
         "name": "ask_user",
-        "description": "Ask the user for input or tell them something and wait for their response. Do not greet the user, if you already talked.",
+        "description": "Ask the user for input or tell them something and wait for their response.",
         "args": {"message": "<message that awaits user input>"},
         "enabled": True,
     },
@@ -25,6 +25,12 @@ commands = [
         "args": {"query": "<query to research>"},
         "enabled": True,
     },
+    {
+        "name": "send_message",
+        "description": "Send a message to the user without waiting for their response. Does not return anything.",
+        "args": {"message": "<message to send>"},
+        "enabled": True,
+    }
 ]
 
 
@@ -90,6 +96,8 @@ Constraints:
 3. Keep thoughts concise and action-focused.
 4. Don't over-analyze simple decisions.
 5. Start with simple questions/actions before complex ones.
+6. Never repeat recent questions or actions.
+7. Check recent history before asking questions.
 """
     + get_commands()
     + """

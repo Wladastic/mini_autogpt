@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import traceback
 from dotenv import load_dotenv
@@ -64,12 +65,18 @@ def load_logo():
     except Exception as e:
         log(f"Could not load logo: {e}")
         return ""
+    
+def type_logo(logo, delay=0.04):
+    """Type out the ASCII art logo."""
+    for line in logo.split("\n"):
+        print(line, flush=True)
+        time.sleep(delay)
 
 
 def initialize():
     """Initialize Mini-AutoGPT."""
     logo = load_logo()
-    print(logo)
+    type_logo(logo)
 
     type_text("Hello my friend!")
     type_text("I am Mini-Autogpt, a small version of Autogpt for smaller llms.")
@@ -82,17 +89,32 @@ def initialize():
 
 def main_loop():
     """Main loop for Mini-AutoGPT."""
-    while True:
-        try:
-            think.run_think()
+    try:
+        while True:
+            try:
+                think.run_think()
+            except KeyboardInterrupt:
+                # Inner loop interrupt - give chance to confirm exit
+                log("\nPress Ctrl+C again to exit, or press Enter to continue...")
+                try:
+                    response = input()
+                    log("Continuing...")
+                except KeyboardInterrupt:
+                    # Second interrupt - exit
+                    raise KeyboardInterrupt
+            except Exception as e:
+                if str(e):
+                    log(f"Error: {str(e)}")
+                if traceback:
+                    log(f"Traceback: {traceback.format_exc()}")
+                log("Waiting 5 seconds before retrying...")
+                time.sleep(5)
 
-        except KeyboardInterrupt:
-            log("Gracefully shutting down...")
-        except Exception as e:
-            if str(e):
-                log(f"Error: {str(e)}")
-            if traceback:
-                log(f"Traceback: {traceback.format_exc()}")
+    except KeyboardInterrupt:
+        # Outer loop interrupt - clean exit
+        log("\nGracefully shutting down...")
+        log("Thanks for using Mini-AutoGPT! Goodbye!")
+        sys.exit(0)
 
 
 def start_mini_autogpt():

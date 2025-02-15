@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import traceback
 import requests
@@ -6,6 +7,7 @@ from think.think import debug_log
 from utils.log import log, save_debug
 import think.memory as memory
 from dotenv import load_dotenv
+
 
 def handle_model_not_found_error(response, server_type):
     """Handle model not found errors with user-friendly messages"""
@@ -28,12 +30,13 @@ def handle_model_not_found_error(response, server_type):
         log(f"Error parsing response: {e}")
     return response
 
+
 def get_base_url(api_url, server_type):
     """Get the base URL for different server types."""
     if server_type == "lmstudio":
         # Clean up URL removing any whitespace and trailing slashes
         base = api_url.strip()
-        
+
         # Extract base path up to /v1
         if "/v1/chat/completions" in base:
             base = base.split("/v1/")[0] + "/v1"
@@ -44,11 +47,12 @@ def get_base_url(api_url, server_type):
                 base = base.rstrip("/") + "/v1"
             else:
                 base = base + "/v1"
-        
+
         return base.rstrip("/")  # Ensure no trailing slash
     else:
         # For other servers, just remove the last part
         return api_url.rsplit("/", 1)[0].strip()
+
 
 def test_connection():
     """Test connection to LLM server based on server type."""
@@ -66,7 +70,7 @@ def test_connection():
             test_url = f"{base_url}/models"  # This will now be /v1/models as required
             log(f"Testing LM Studio models endpoint: {test_url}")
             response = requests.get(test_url, timeout=5)
-            save_debug({"url": test_url}, response)
+            save_debug({"url": test_url}, response, request_type="connection_test")
 
             if response.status_code == 404:
                 return "No models loaded in LM Studio. Please load a model first."
@@ -86,7 +90,9 @@ def test_connection():
                 log(f"Testing Ollama model availability: {model_url}")
                 response = requests.get(model_url, timeout=5)
                 save_debug({"url": model_url}, response)
-                if not any(model in str(tag) for tag in response.json().get("models", [])):
+                if not any(
+                    model in str(tag) for tag in response.json().get("models", [])
+                ):
                     return f"Model {model} not found in Ollama."
 
         elif llm_server_type == "oobabooga":
@@ -103,6 +109,7 @@ def test_connection():
         error_msg = f"Could not connect to {llm_server_type} server at {api_url}"
         log(f"{error_msg}: {str(e)}")
         return error_msg
+
 
 def llm_request(history):
     """Process a request to the LLM with the given conversation history."""
@@ -134,14 +141,9 @@ def llm_request(history):
         debug_log(traceback.format_exc())
         return None
 
+
 def send(data, max_retries=3, retry_delay=5):
-    """Send the actual request to the LLM server.
-    
-    Args:
-        data: The data to send to the LLM
-        max_retries: Maximum number of retries on failure (default: 3)
-        retry_delay: Seconds to wait between retries (default: 5)
-    """
+    """Send the actual request to the LLM server."""
     load_dotenv()
     api_url = os.getenv("API_URL", "").strip()  # Strip whitespace from API URL
     llm_server_type = os.getenv("LLM_SERVER_TYPE", "lmstudio")
@@ -150,119 +152,142 @@ def send(data, max_retries=3, retry_delay=5):
     if not api_url:
         log("API URL is not configured")
         log("Fatal error - exiting")
-        exit(1)
+        sys.exit(1)
 
     retry_count = 0
-    while retry_count < max_retries:
-        try:
-            if retry_count > 0:
-                log(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
-            else:
-                log("Thinking...")
+    try:
+        while retry_count < max_retries:
+            try:
+                if retry_count > 0:
+                    log(f"Retrying... (Attempt {retry_count + 1}/{max_retries})")
+                else:
+                    log("Thinking...")
 
-            if llm_server_type == "lmstudio":
-                lmstudio_model = os.getenv("LMSTUDIO_MODEL")
-                temperature = float(os.getenv("TEMPERATURE", "0.8"))
-                max_tokens = int(os.getenv("MAX_TOKENS", "4000"))
-                
-                # Construct the chat completions endpoint
-                base_url = get_base_url(api_url, "lmstudio")  # Let get_base_url handle slashes
-                chat_url = f"{base_url}/chat/completions"  # This will now be /v1/chat/completions as required
-                log(f"Sending request to LM Studio: {chat_url}")
-                
-                payload = {
-                    "messages": data["messages"],
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                    "model": lmstudio_model,
-                }
-                response = requests.post(chat_url, headers=headers, json=payload, timeout=30)
-                save_debug({"url": chat_url, "payload": payload}, response)
-                
-                try:
-                    response_data = response.json()
-                    if "error" in response_data:
-                        log(f"Error from LMStudio: {response_data['error']}")
-                        # Model errors are fatal
+                if llm_server_type == "lmstudio":
+                    lmstudio_model = os.getenv("LMSTUDIO_MODEL")
+                    temperature = float(os.getenv("TEMPERATURE", "0.8"))
+                    max_tokens = int(os.getenv("MAX_TOKENS", "4000"))
+
+                    base_url = get_base_url(api_url, "lmstudio")
+                    chat_url = f"{base_url}/chat/completions"
+                    debug_log(f"Sending request to LM Studio: {chat_url}")
+
+                    payload = {
+                        "messages": data["messages"],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                        "model": lmstudio_model,
+                    }
+                    response = requests.post(
+                        chat_url, headers=headers, json=payload, timeout=30
+                    )
+                    save_debug({"url": chat_url, "payload": payload}, response)
+
+                    try:
+                        response_data = response.json()
+                        if "error" in response_data:
+                            log(f"Error from LMStudio: {response_data['error']}")
+                            log("Fatal error - exiting")
+                            sys.exit(1)
+                    except Exception as e:
+                        log(f"Error parsing LMStudio response: {e}")
                         log("Fatal error - exiting")
-                        exit(1)
-                except Exception as e:
-                    log(f"Error parsing LMStudio response: {e}")
-                    # JSON parse errors are fatal
+                        sys.exit(1)
+                    response_text = response_data["choices"][0]["message"]["content"]
+
+                    # in case of thinking llm models, we have to filter and cut out the <think> </think> texts
+                    # those are then ignored more or less here, as we do not need them in the response so far.
+                    # TODO: Maybe we can disable the thinking method if a "thinking" model is detected though.
+                    log(f"Response text: {response_text}")
+                    if "<think>" in response_text and "</think>" in response_text:
+                        response_text = response_text.split("<think>")[1].split(
+                            "</think>"
+                        )[0]
+                        response_data["choices"][0]["message"][
+                            "content"
+                        ] = response_text
+                    log(f"Response text after filtering: {response_text}")
+                    return response
+
+                elif llm_server_type == "ollama":
+                    ollama_model = os.getenv("OLLAMA_MODEL", "default")
+                    base_url = get_base_url(api_url, "ollama")
+                    generate_url = f"{base_url}/generate"
+                    log(f"Sending request to Ollama: {generate_url}")
+
+                    payload = {
+                        "prompt": data["messages"][-1]["content"],
+                        "model": ollama_model,
+                        "stream": False,
+                    }
+                    response = requests.post(
+                        generate_url, headers=headers, json=payload, timeout=30
+                    )
+                    save_debug(payload, response)
+
+                    if response.status_code != 200:
+                        log(f"Error from Ollama: {response.status_code}")
+                        if response.status_code == 404:
+                            log(
+                                f"Model {ollama_model} not found. Try: ollama pull {ollama_model}"
+                            )
+                            log("Fatal error - exiting")
+                            sys.exit(1)
+                        # Other status codes might be temporary
+                        retry_count += 1
+                        continue
+
+                    return response
+
+                elif llm_server_type == "oobabooga":
+                    temperature = float(os.getenv("TEMPERATURE", "0.7"))
+                    max_tokens = int(os.getenv("MAX_TOKENS", "2000"))
+                    payload = {
+                        "messages": data["messages"],
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    }
+                    response = requests.post(
+                        api_url, headers=headers, json=payload, timeout=30
+                    )
+                    save_debug(payload, response)
+
+                    if response.status_code != 200:
+                        log(f"Error from Oobabooga: {response.status_code}")
+                        log("Fatal error - exiting")
+                        sys.exit(1)
+
+                    return response
+
+                else:
+                    log(f"Unknown LLM server type: {llm_server_type}")
                     log("Fatal error - exiting")
-                    exit(1)
+                    sys.exit(1)
 
-                return response
-
-            elif llm_server_type == "ollama":
-                ollama_model = os.getenv("OLLAMA_MODEL", "default")
-                # Construct the generate endpoint
-                base_url = get_base_url(api_url, "ollama")
-                generate_url = f"{base_url}/generate"
-                log(f"Sending request to Ollama: {generate_url}")
-                
-                payload = {
-                    "prompt": data["messages"][-1]["content"],
-                    "model": ollama_model,
-                    "stream": False,
-                }
-                response = requests.post(generate_url, headers=headers, json=payload, timeout=30)
-                save_debug(payload, response)
-
-                if response.status_code != 200:
-                    log(f"Error from Ollama: {response.status_code}")
-                    if response.status_code == 404:
-                        log(f"Model {ollama_model} not found. Try: ollama pull {ollama_model}")
-                        # Model not found is a fatal error
-                        log("Fatal error - exiting")
-                        exit(1)
-                    # Other status codes might be temporary
-                    retry_count += 1
+            except (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+            ) as e:
+                retry_count += 1
+                if retry_count < max_retries:
+                    log(f"Connection error: {str(e)}")
+                    log(f"Waiting {retry_delay} seconds before retrying...")
+                    time.sleep(retry_delay)
                     continue
-
-                return response
-
-            elif llm_server_type == "oobabooga":
-                temperature = float(os.getenv("TEMPERATURE", "0.7"))
-                max_tokens = int(os.getenv("MAX_TOKENS", "2000"))
-                payload = {
-                    "messages": data["messages"],
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                }
-                response = requests.post(api_url, headers=headers, json=payload, timeout=30)
-                save_debug(payload, response)
-
-                if response.status_code != 200:
-                    log(f"Error from Oobabooga: {response.status_code}")
-                    # Non-200 responses from Oobabooga are fatal
-                    log("Fatal error - exiting")
-                    exit(1)
-
-                return response
-
-            else:
-                log(f"Unknown LLM server type: {llm_server_type}")
-                # Invalid configuration is fatal
+                log(f"Failed to connect after {max_retries} attempts. Error: {str(e)}")
                 log("Fatal error - exiting")
-                exit(1)
+                sys.exit(1)
 
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
-            retry_count += 1
-            if retry_count < max_retries:
-                log(f"Connection error: {str(e)}")
-                log(f"Waiting {retry_delay} seconds before retrying...")
-                time.sleep(retry_delay)
-                continue
-            log(f"Failed to connect after {max_retries} attempts. Error: {str(e)}")
-            log("Fatal error - exiting")
-            exit(1)
+            except Exception as e:
+                log(f"Unexpected error: {str(e)}")
+                debug_log(traceback.format_exc())
+                log("Fatal error - exiting")
+                sys.exit(1)
 
-        except Exception as e:
-            log(f"Unexpected error: {str(e)}")
-            debug_log(traceback.format_exc())
-            log("Fatal error - exiting")
-            exit(1)
+    except KeyboardInterrupt:
+        log("\nReceived keyboard interrupt, cleaning up...")
+        sys.exit(0)
+
 
 def one_shot_request(prompt, system_context):
     """Send a single request with system context and user prompt."""
@@ -279,6 +304,7 @@ def one_shot_request(prompt, system_context):
     except Exception as e:
         log(f"Error extracting content: {str(e)}")
         return None
+
 
 def build_context(history, conversation_history, message_history):
     """Build context from conversation history and messages."""
@@ -308,6 +334,7 @@ def build_context(history, conversation_history, message_history):
             }
         )
     return history
+
 
 def build_prompt(base_prompt):
     """Build initial prompt with system message."""
